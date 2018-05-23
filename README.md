@@ -9,7 +9,7 @@
 ```js
 import { assert } from "mamacro";
 
-assert(false, "it's false");
+assert(true === false, "it's false"); // Error: true === false error: it's false
 ```
 
 ```js
