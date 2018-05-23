@@ -4,5 +4,7 @@ function noop() {
 
 module.exports = {
   define: noop,
-  assert: noop
+
+  assert: noop,
+  assertRuntimeError: noop
 };

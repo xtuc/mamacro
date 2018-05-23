@@ -87,6 +87,15 @@ function macro({types: t}) {
     t.identifier("assert"),
     parse([
       "(cond, msg) => `if (!(${cond})) {",
+        "throw new Error('${cond}' + \" error: \" + (${msg} || \"unknown\"));",
+      "}`"
+    ].join("\n")).program.body[0].expression
+  );
+
+  defineMacro(
+    t.identifier("assertRuntimeError"),
+    parse([
+      "(cond, msg) => `if (!(${cond})) {",
         "throw new RuntimeError('${cond}' + \" error: \" + (${msg} || \"unknown\"));",
       "}`"
     ].join("\n")).program.body[0].expression
