@@ -100,7 +100,7 @@ function macro({types: t}) {
         /**
          * Register macro
          */
-        if (t.isIdentifier(node.callee, {name: "MACRO"})) {
+        if (t.isIdentifier(node.callee, {name: "define"})) {
           defineMacro(node.arguments[0], node.arguments[1]);
           path.remove();
 
