@@ -66,7 +66,7 @@ function macro({types: t}) {
     return joinAndRenderTemplate(template);
   }
 
-  function defineMacro(ident, fn) {
+  function defineMacro(ident, fn, isDefault) {
     const {name} = ident;
 
     if (t.isArrowFunctionExpression(fn) === false) {
@@ -78,6 +78,7 @@ function macro({types: t}) {
     }
 
     macroMap[name] = fn;
+    macroMap[name].isDefault = isDefault;
   }
 
   /**
@@ -89,7 +90,8 @@ function macro({types: t}) {
       "(cond, msg) => `if (!(${cond})) {",
         "throw new Error('${cond}' + \" error: \" + (${msg} || \"unknown\"));",
       "}`"
-    ].join("\n")).program.body[0].expression
+    ].join("\n")).program.body[0].expression,
+    true
   );
 
   defineMacro(
@@ -98,18 +100,45 @@ function macro({types: t}) {
       "(cond, msg) => `if (!(${cond})) {",
         "throw new RuntimeError('${cond}' + \" error: \" + (${msg} || \"unknown\"));",
       "}`"
-    ].join("\n")).program.body[0].expression
+    ].join("\n")).program.body[0].expression,
+    true
   );
 
   return {
     visitor: {
+      Program(path, state) {
+        if (typeof state.importedFromMamacro === "undefined") {
+          state.importedFromMamacro = [];
+        }
+      },
+
+      /**
+       * Collect maros to be processed
+       */
+      ImportDeclaration({ node }, state) {
+        if (t.isStringLiteral(node.source, { value: "mamacro" }) === false) {
+          return;
+        }
+
+        node.specifiers.forEach(({ imported }) =>
+          state.importedFromMamacro.push(imported.name)
+        );
+      },
+
+      /**
+       * Process macros
+       */
       CallExpression(path, state) {
         const {node} = path;
 
         /**
          * Register macro
          */
-        if (t.isIdentifier(node.callee, {name: "define"})) {
+        const hasDefineBeenImported = state.importedFromMamacro.indexOf("define") !== -1;
+        if (
+          hasDefineBeenImported === true
+          && t.isIdentifier(node.callee, {name: "define"})
+        ) {
           defineMacro(node.arguments[0], node.arguments[1]);
           path.remove();
 
@@ -120,8 +149,19 @@ function macro({types: t}) {
          * Process macro
          */
         const macro = macroMap[node.callee.name];
+        const hasMacroBeenImported = state.importedFromMamacro.indexOf(node.callee.name);
 
         if (typeof macro !== "undefined") {
+
+          // if it's a default macro and has not been imported, it's likely a
+          // collision
+          if (
+            macro.isDefault === true
+            && state.importedFromMamacro.indexOf(node.callee.name) === -1
+          ) {
+            return;
+          }
+
           const callExpressionArgs = node.arguments;
 
           const string = renderMacro(macro, callExpressionArgs);
