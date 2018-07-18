@@ -115,12 +115,14 @@ function macro({types: t}) {
       /**
        * Collect maros to be processed
        */
-      ImportDeclaration({ node }, state) {
-        if (t.isStringLiteral(node.source, { value: "mamacro" }) === false) {
+      ImportDeclaration(path, state) {
+        const { source, specifiers } = path.node;
+
+        if (t.isStringLiteral(source, { value: "mamacro" }) === false) {
           return;
         }
 
-        node.specifiers.forEach(({ imported }) =>
+        specifiers.forEach(({ imported }) =>
           state.importedFromMamacro.push(imported.name)
         );
 
