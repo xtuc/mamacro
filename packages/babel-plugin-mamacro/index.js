@@ -123,6 +123,8 @@ function macro({types: t}) {
         node.specifiers.forEach(({ imported }) =>
           state.importedFromMamacro.push(imported.name)
         );
+
+        path.remove();
       },
 
       /**
